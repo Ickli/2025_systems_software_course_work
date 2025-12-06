@@ -1,5 +1,5 @@
 a.out: Parser.c Lexer.c
-	gcc Parser.c Lexer.c -I.
+	gcc Parser.c Lexer.c -I. -g
 
 Parser.c: bison.y
 	bison bison.y -Wconflicts-sr -Wcounterexamples -v

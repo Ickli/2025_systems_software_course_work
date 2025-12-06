@@ -1,64 +1,9 @@
 %{
 
-/*
-enum {
-COMMENTLINE,
-MULTICOMMENTLINE,
-DIRECTIVELINE,
-IDLETTER,
-ID,
-
-STRING_LITERAL,
-NUM_LITERAL,
-FLOAT_LITERAL,
-
-OPERARROW,
-OPERASSIGN,
-OPERPLUS,
-OPERMINUS,
-OPERSTART,
-OPERDIV,
-OPERCOMMA,
-OPERUPARROW,
-OPERDOT,
-
-SEMICOLON,
-COMMA,
-
-KWIF,
-KWDO,
-KWELSE,
-KWSIZEOF,
-KWSWITCH,
-KWCASE,
-KWSTRUCT,
-KWTYPEDEF,
-KWRETURN,
-KWSTATIC,
-KWEXTERN,
-KWCONST,
-KWUNSIGNED,
-KWWHILE,
-KWFOR,
-KWINT,
-KWCHAR,
-KWLONG,
-KWSHORT,
-KWFLOAT,
-KWDOUBLE,
-
-PAROPEN,
-PARCLOSE,
-BRACKOPEN,
-BRACKCLOSE,
-CURLYOPEN,
-CURLYCLOSE,
-};
-*/
-
 #include "Parser.h"
 
-char localtext[4096];
+int type_info_find(const char* name);
+int typedefed_find(const char* nick);
 
 %}
 
@@ -85,6 +30,7 @@ operstar "*"
 operdiv "/"
 operuparrow "^"
 operdot "."
+operand "&"
 
 semicolon ";"
 comma ","
@@ -112,6 +58,10 @@ kwlong "long"
 kwshort "short"
 kwfloat "float"
 kwdouble "double"
+kwtrue "true"
+kwfalse "false"
+kwbreak "break"
+kwcontinue "continue"
 
 paropen "("
 parclose ")"
@@ -119,6 +69,16 @@ brackopen "["
 brackclose "]"
 curlyopen "{"
 curlyclose "}"
+operless "<"
+opergreater ">"
+operlesseq "<="
+opergreatereq ">="
+opereq "=="
+operneq "!="
+operandlogic "&&"
+operorlogic "||"
+operandbit "&"
+operorbit "|"
 
 %%
 
@@ -145,6 +105,10 @@ curlyclose "}"
 {kwshort} { yylval.text = strdup(yytext); return KWSHORT; }
 {kwfloat} { yylval.text = strdup(yytext); return KWFLOAT; }
 {kwdouble} { yylval.text = strdup(yytext); return KWDOUBLE; }
+{kwtrue} { return KWTRUE; }
+{kwfalse} { return KWFALSE; }
+{kwbreak} { return KWBREAK; }
+{kwcontinue} { return KWCONTINUE; }
 
 {paropen} { return PAROPEN; }
 {parclose} { return PARCLOSE; }
@@ -157,9 +121,30 @@ curlyclose "}"
 {commentline} { return COMMENTLINE; }
 {multicommentline} { return MULTICOMMENTLINE; }
 {directiveline} { return DIRECTIVELINE; }
-{id} { yylval.text = strdup(yytext); return ID; }
+{id} { 
+    yylval.text = strdup(yytext);
+    int typedef_at = -1;
+    if((typedef_at = typedefed_find(yylval.text)) >= 0) {
+        yylval.num = typedef_at;
+        return TYPEDEFED_TYPENAME;
+    } else if(type_info_find(yylval.text) >= 0) {
+        return TYPENAME;
+    } else {
+        return ID;
+    }
+}
 
-{string_literal} { printf("%s\nLITTT!!!\n", yytext); strcpy(yylval.text, yytext); return STRING_LITERAL; }
+{string_literal} {
+    size_t len = strlen(yytext);
+    len--; // subtract to remove final quote
+
+    yylval.text = malloc(1024);
+    memcpy(yylval.text, yytext, len);
+    const char term[] = "\\0\"";
+    memcpy(yylval.text + len, term, sizeof(term));
+
+    return STRING_LITERAL; 
+}
 {num_literal} { yylval.num = atoi(yytext); return NUM_LITERAL; }
 {float_literal} { yylval.floatnum = atof(yytext); return FLOAT_LITERAL; }
 
@@ -172,6 +157,17 @@ curlyclose "}"
 {operdiv} { yylval.text = strdup(yytext); return OPERDIV; }
 {operuparrow} { yylval.text = strdup(yytext); return OPERUPARROW; }
 {operdot} { yylval.text = strdup(yytext); return OPERDOT; }
+{operand} { yylval.text = strdup(yytext); return OPERAND; }
+{operless} { return OPERLESS; }
+{opergreater} { return OPERGREATER; }
+{operlesseq} { return OPERLESSEQ; }
+{opergreatereq} { return OPERGREATEREQ; }
+{opereq} { return OPEREQ; }
+{operneq} { return OPERNEQ; }
+{operandlogic} { return OPERANDLOGIC; }
+{operorlogic} { return OPERORLOGIC; } 
+{operandbit} { return OPERANDBIT; } 
+{operorbit} { return OPERORBIT; } 
 
 {semicolon} { return SEMICOLON; }
 {comma} { yylval.text = strdup(yytext); return COMMA; }

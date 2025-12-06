@@ -1,8 +1,9 @@
-a.out
+*.out
+*.docx
+*.pdf
 out.py
 Parser.c
 Parser.h
 Lexer.c
 Lexer.h
 Parser.output
-trash/
