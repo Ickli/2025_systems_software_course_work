@@ -1,6 +1,7 @@
 *.out
 *.docx
 *.pdf
+.~lock*
 out.py
 Parser.c
 Parser.h
